@@ -1,70 +1,49 @@
 # android_virtual_cam
-
 [简体中文](./README.md) | [繁體中文](./README_tc.md) | [English](./README_en.md)
 
-基於Xposed的虛擬攝影機
+A virtual camera based on Xposed
 
-# 請勿用於任何非法用途，所有後果自負。
+# Do not use for any illegal purposes. You are responsible for all consequences.
 
-## 支援平臺：
+## Mainland China mirror (Gitee): https://gitee.com/w2016561536/android_virtual_cam
 
-- 安卓5.0+
+## Supported platforms:
+- Android 5.0+
 
-## 使用方法
+## Usage
+1. Install this module and enable it in Xposed. For frameworks with scopes such as LSPosed, select the target app; no need to select the system framework.
+2. In system settings, grant the target app permission to read local storage, then force stop the app. If the app does not request this permission, see step 3.
+3. Open the target app. If it fails to obtain read storage permission, a toast will indicate that the `Camera1` directory is redirected to the app private directory: `/[Internal Storage]/Android/data/[package_name]/files/Camera1/`. If no toast appears, the default `Camera1` directory is `/[Internal Storage]/DCIM/Camera1/`. If the directory does not exist, please create it manually.
+> Note: The `Camera1` under the private directory only takes effect for that specific app.
+4. Open the camera preview in the target app. A toast will show “width: … height: …”. Prepare a replacement video based on that resolution, place it in the `Camera1` directory, and name it `virtual.mp4`. If there is no toast when opening the camera, you do not need to adjust the video resolution.
+5. If taking a photo in the target app still shows a real image and a toast appears saying `Photo detected` with a resolution, prepare a photo with that resolution, name it `1000.bmp`, and place it in the `Camera1` directory (other formats are supported by renaming the extension to bmp). If there is no toast when taking a photo, `1000.bmp` has no effect.
+6. To play video audio, create `no-silent.jpg` under `/[Internal Storage]/DCIM/Camera1/`. (Global, real-time effect)
+7. To temporarily disable video replacement, create `disable.jpg` under `/[Internal Storage]/DCIM/Camera1/`. (Global, real-time effect)
+8. If you find Toast messages annoying, create `no_toast.jpg` under `/[Internal Storage]/DCIM/Camera1/`. (Global, real-time effect)
+9. The directory redirection message shows only once by default. If you missed it, create `force_show.jpg` under `/[Internal Storage]/DCIM/Camera1/` to override the default. (Global, real-time effect)
+10. To assign a different video per app, create `private_dir.jpg` under `/[Internal Storage]/DCIM/Camera1/` to force using the app private directory. (Global, real-time effect)
+> Note: Items 6–10 can be configured in the app UI for convenience, or you can create the files manually.
 
-1. 安裝此模組，並在Xposed中啟用此模組，Lsposed等包含作用域的框架需要選擇目標app，無需選擇系統框架。
+## FAQ
+Q1. Front camera orientation problem?
+A1. In most cases, the replacement video for the front camera needs a horizontal flip and a 90° clockwise rotation, and the processed video resolution should match the resolution shown in the toast message. Sometimes this is not necessary; please judge based on the actual situation.
 
-2. 在系統設定中，授予目標應用讀取本機儲存的許可權，並強制結束目標應用程式。 若應用程式未申請此許可權，請見步驟3。
+Q2. Black screen, camera fails to start?
+A2. Some apps currently cannot be replaced successfully (especially the system camera). Or the video path is incorrect (did you create two levels of Camera1, like `./DCIM/Camera1/Camera1/virtual.mp4`? Only one level is required).
 
-3. 打開目標應用，若應用未能獲得讀取儲存的許可權，則會以氣泡消息提示，`Camera1`目錄被重新導向至應用程式私有目錄`/[內部儲存]/Android/data/[應用包名]/files/Camera1/`。 若未提示，則預設`Camera1`目錄為`/[內部儲存]/DCIM/Camera1/`。 若目錄不存在，請手動建立。
+Q3. Garbled screen?
+A3. Incorrect video resolution.
 
-> 注意：私有目錄下的`Camera1`僅對該應用單獨生效。
+Q4. Distorted image?
+A4. Use an editing tool to modify the original video to match the screen.
 
-4. 在目標應用中打開相機預覽，會以氣泡消息提示「寬：……高：……」，需要根據此解析度資料製作取代影片，放置於`Camera1`目錄下，並命名為`virtual.mp4`，若打開相機並無提示消息，則無需調整影片解析度。
+Q5. Creating `disable.jpg` is ineffective?
+A5. If app version `<= 4.0`, then files under `[Internal Storage]/DCIM/Camera1` only take effect for apps WITH storage permission; other apps without permission should create the file under the PRIVATE DIRECTORY. If app version `>= 4.1`, create it under `[Internal Storage]/DCIM/Camera1` regardless of permissions.
 
-5. 若在目標應用中拍照卻顯示真實圖片，且出現氣泡消息`發現拍照`和解析度，則需根據此解析度資料準備一張照片，命名為`1000.bmp`，放入`Camera1`目錄下（支援其它格式改尾碼為bmp）。 如果拍照時無氣泡消息提示，則`1000.bmp`無效。
+## Feedback
+Please report directly in issues. If reporting a BUG, please attach the Xposed module log.
 
-6. 如果需要播放影片的聲音，需在`/[內部儲存]/DCIM/Camera1/`目錄下建立`no-silent.jpg`檔案。（全域即時生效）
-
-7. 如果需要臨時停用影片取代，需在`/[內部儲存]/DCIM/Camera1/`目錄下建立`disable.jpg`檔案。（全域即時生效）
-
-8. 如果覺得Toast消息煩，可以在`/[內部儲存]/DCIM/Camera1/`目錄下建立`no_toast.jpg`檔案。 （全域即時生效）
-
-9. 目錄重定向消息預設只顯示一次，如果錯過了目錄重定向的Toast消息，可以在`/[內部儲存]/DCIM/Camera1/`目錄下建立`force_show.jpg`檔案來覆蓋預設設定。 （全域即時生效）
-
-10.如果需要為每一個應用程式分配影片，可以在`/[內部儲存]/DCIM/Camera1/`目錄下建立`private_dir.jpg`強制使用應用程式私有目錄。 （全域即時生效）
-
->注意：6~10的配寘開關均在應用程式中，您可以快捷地在應用程式中配寘，也可以手動建立檔案。
-
-
-## 常見問題
-
-A1. 前置攝影機方向問題？  
-Q1.大多數情況下，取代前置攝影機的影片需要水準翻轉並右旋90度，並且影片***處理後***的解析度應與氣泡消息內解析度相同。 但有時這並不需要，具體請根據實際情況判斷。
-
-Q2. 畫面黑屏，相機啟動失敗？  
-A2. 現時有些應用並不能成功取代（特別是系統相機）。 或者是因為影片路徑不對(是否建立了兩級Camera1目錄，如`./DCIM/Camera1/Camera1/virtual.mp4`，但只需要一級目錄)。
-
-Q3. 畫面花屏？  
-A3. 影片解析度不對。
-
-Q4. 畫面扭曲，變形？  
-A4. 請使用剪輯軟體修改原影片來匹配螢幕。
-
-Q5. 建立`disable. jpg`無效？  
-A5. 如果應用版本`<=4.0`，那麼`[內部儲存]/DCIM/Camera1`目錄下的檔案對**具有訪問儲存許可權**的應用生效，其餘無許可權應用應在**私有目錄**下建立  
-如果應用版本`>=4.1`，那麼應在`[內部儲存]/DCIM/Camera1`建立，無論目標應用是否具有許可權。
-
-
-## 迴響問題
-
-請直接在issues中迴響，如果為BUG迴響，請附帶Xposed**模組**日誌資訊。
-
-
-##致謝：
-
-提供HOOK思路： https://github.com/wangwei1237/CameraHook
-
-H264硬解碼： https://github.com/zhantong/Android-VideoToImages
-
-JPEG轉YUV： https://blog.csdn.net/jacke121/article/details/73888732
+## Acknowledgments
+Provide hook idea: https://github.com/wangwei1237/CameraHook
+H.264 hardware decoding: https://github.com/zhantong/Android-VideoToImages
+JPEG to YUV: https://blog.csdn.net/jacke121/article/details/73888732
