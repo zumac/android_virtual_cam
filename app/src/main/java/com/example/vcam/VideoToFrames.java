@@ -1,5 +1,4 @@
 package com.example.vcam;
-
 import android.annotation.SuppressLint;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
@@ -10,42 +9,33 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.util.Log;
 import android.view.Surface;
-
 import com.example.vcam.HookMain;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import de.robv.android.xposed.XposedBridge;
 
-//以下代码修改自 https://github.com/zhantong/Android-VideoToImages
+// The following code is modified from https://github.com/zhantong/Android-VideoToImages
 public class VideoToFrames implements Runnable {
     private static final String TAG = "VideoToFrames";
     private static final boolean VERBOSE = false;
     private static final long DEFAULT_TIMEOUT_US = 10000;
-
     private static final int COLOR_FormatI420 = 1;
     private static final int COLOR_FormatNV21 = 2;
-
-
     private final int decodeColorFormat = MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible;
 
     private LinkedBlockingQueue<byte[]> mQueue;
     private OutputImageFormat outputImageFormat;
     private boolean stopDecode = false;
-
     private String videoFilePath;
     private Throwable throwable;
     private Thread childThread;
     private Surface play_surf;
-
     private Callback callback;
 
     public interface Callback {
         void onFinishDecode();
-
         void onDecodeFrame(int index);
     }
 
@@ -57,10 +47,9 @@ public class VideoToFrames implements Runnable {
         mQueue = queue;
     }
 
-    //设置输出位置，没啥用
+    // Set output location (not used)
     public void setSaveFrames(String dir, OutputImageFormat imageFormat) throws IOException {
         outputImageFormat = imageFormat;
-
     }
 
     public void set_surfcae(Surface player_surface) {
@@ -84,6 +73,7 @@ public class VideoToFrames implements Runnable {
         }
     }
 
+    @Override
     public void run() {
         try {
             videoDecode(videoFilePath);
@@ -94,7 +84,7 @@ public class VideoToFrames implements Runnable {
 
     @SuppressLint("WrongConstant")
     public void videoDecode(String videoFilePath) throws IOException {
-        XposedBridge.log("【VCAM】【decoder】开始解码");
+        XposedBridge.log("[VCAM][decoder] Starting decode");
         MediaExtractor extractor = null;
         MediaCodec decoder = null;
         try {
@@ -103,7 +93,7 @@ public class VideoToFrames implements Runnable {
             extractor.setDataSource(videoFilePath);
             int trackIndex = selectTrack(extractor);
             if (trackIndex < 0) {
-                XposedBridge.log("【VCAM】【decoder】No video track found in " + videoFilePath);
+                XposedBridge.log("[VCAM][decoder] No video track found in " + videoFilePath);
             }
             extractor.selectTrack(trackIndex);
             MediaFormat mediaFormat = extractor.getTrackFormat(trackIndex);
@@ -112,10 +102,10 @@ public class VideoToFrames implements Runnable {
             showSupportedColorFormat(decoder.getCodecInfo().getCapabilitiesForType(mime));
             if (isColorFormatSupported(decodeColorFormat, decoder.getCodecInfo().getCapabilitiesForType(mime))) {
                 mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, decodeColorFormat);
-                XposedBridge.log("【VCAM】【decoder】set decode color format to type " + decodeColorFormat);
+                XposedBridge.log("[VCAM][decoder] Set decode color format to type " + decodeColorFormat);
             } else {
                 Log.i(TAG, "unable to set decode color format, color format type " + decodeColorFormat + " not supported");
-                XposedBridge.log("【VCAM】【decoder】unable to set decode color format, color format type " + decodeColorFormat + " not supported");
+                XposedBridge.log("[VCAM][decoder] Unable to set decode color format, color format type " + decodeColorFormat + " not supported");
             }
             decodeFramesToImage(decoder, extractor, mediaFormat);
             decoder.stop();
@@ -124,8 +114,8 @@ public class VideoToFrames implements Runnable {
                 decodeFramesToImage(decoder, extractor, mediaFormat);
                 decoder.stop();
             }
-        }catch (Exception e){
-            XposedBridge.log("【VCAM】[videofile]"+ e.toString());
+        } catch (Exception e) {
+            XposedBridge.log("[VCAM][videofile] " + e.toString());
         } finally {
             if (decoder != null) {
                 decoder.stop();
@@ -183,6 +173,7 @@ public class VideoToFrames implements Runnable {
                     }
                 }
             }
+
             int outputBufferId = decoder.dequeueOutputBuffer(info, DEFAULT_TIMEOUT_US);
             if (outputBufferId >= 0) {
                 if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
@@ -207,7 +198,7 @@ public class VideoToFrames implements Runnable {
                             try {
                                 mQueue.put(arr);
                             } catch (InterruptedException e) {
-                                XposedBridge.log("【VCAM】" + e.toString());
+                                XposedBridge.log("[VCAM] " + e.toString());
                             }
                         }
                         if (outputImageFormat != null) {
@@ -220,8 +211,8 @@ public class VideoToFrames implements Runnable {
                         try {
                             Thread.sleep(sleepTime);
                         } catch (InterruptedException e) {
-                            XposedBridge.log("【VCAM】" + e.toString());
-                            XposedBridge.log("【VCAM】线程延迟出错");
+                            XposedBridge.log("[VCAM] " + e.toString());
+                            XposedBridge.log("[VCAM] Thread sleep error");
                         }
                     }
                     decoder.releaseOutputBuffer(outputBufferId, true);
@@ -261,7 +252,7 @@ public class VideoToFrames implements Runnable {
 
     private static byte[] getDataFromImage(Image image, int colorFormat) {
         if (colorFormat != COLOR_FormatI420 && colorFormat != COLOR_FormatNV21) {
-            throw new IllegalArgumentException("only support COLOR_FormatI420 " + "and COLOR_FormatNV21");
+            throw new IllegalArgumentException("only support COLOR_FormatI420 and COLOR_FormatNV21");
         }
         if (!isImageFormatSupported(image)) {
             throw new RuntimeException("can't convert Image to byte array, format " + image.getFormat());
@@ -337,8 +328,6 @@ public class VideoToFrames implements Runnable {
         }
         return data;
     }
-
-
 }
 
 enum OutputImageFormat {
@@ -346,15 +335,10 @@ enum OutputImageFormat {
     NV21("NV21"),
     JPEG("JPEG");
     private final String friendlyName;
-
     OutputImageFormat(String friendlyName) {
         this.friendlyName = friendlyName;
     }
-
     public String toString() {
         return friendlyName;
     }
 }
-
-
-
